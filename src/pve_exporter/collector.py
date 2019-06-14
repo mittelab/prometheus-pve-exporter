@@ -125,10 +125,19 @@ class StatusCollector(LabelingCollectorBase):
             'Node/VM/CT-Status is online/running',
             labels=label_keys)
 
-        for entry in itertools.chain(self._pve.cluster.status.get(),
-                self._pve.cluster.resources.get()):
+        processed_ids = set()
+
+        for entry in itertools.chain(self._pve.cluster.resources.get(),
+            self._pve.cluster.status.get()):
 
             labels = self.get_known_labels(entry)
+            # Skip entries that are in common between cluster resources and
+            # cluster status_metrics
+            if labels['id'] in processed_ids:
+                continue
+            else:
+                processed_ids.add(labels['id'])
+
             is_up = 1 if labels['up'] else 0
             label_values = self.get_label_values(labels, label_keys)
             status_metrics.add_metric(label_values, is_up)
